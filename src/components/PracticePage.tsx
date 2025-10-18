@@ -26,6 +26,7 @@ const PracticePage: React.FC<PracticePageProps> = ({
     selectedAnswer,
     setSelectedAnswer,
     submitAnswer,
+    handleTimeout,
     startNewSession,
     endCurrentSession,
     isSessionActive,
@@ -43,14 +44,21 @@ const PracticePage: React.FC<PracticePageProps> = ({
     initialTime: timeLimit,
     onTimeUp: () => {
       if (isSessionActive && currentQuestion) {
-        // Auto-submit when time is up
-        submitAnswer();
+        // Handle timeout - submit as wrong answer
+        handleTimeout();
       }
     },
     isActive: isSessionActive && timerEnabled,
     onPause: () => console.log('Timer paused'),
     onResume: () => console.log('Timer resumed')
   });
+
+  // Restart timer when a new question loads
+  useEffect(() => {
+    if (currentQuestion && isSessionActive && timerEnabled) {
+      timer.restart();
+    }
+  }, [currentQuestion, isSessionActive, timerEnabled, timer]);
 
   const handleStartPractice = () => {
     setShowInstructions(false);
@@ -108,10 +116,12 @@ const PracticePage: React.FC<PracticePageProps> = ({
                   איך עובד התרגול?
                 </h2>
                 <ul className="space-y-2 list-disc list-inside">
-                  <li>המערכת מתחילה ברמת קושי נמוכה ומתאימה את עצמה בהתאם לביצועים שלכם</li>
-                  <li>כל 3 שאלות המערכת מעריכה את הביצועים ומתאימה את רמת הקושי</li>
-                  <li>התרגול מסתיים כאשר תגיעו לרמת קושי גבוהה או תענו על מספר מספיק של שאלות</li>
+                  <li>המערכת מתחילה ברמת קושי 3-4 ומתאימה את עצמה בהתאם לביצועים שלכם</li>
+                  <li>כל 2 שאלות המערכת מעריכה את הביצועים ומתאימה את רמת הקושי</li>
+                  <li>2 תשובות נכונות ברצף מעלות את רמת הקושי, 2 תשובות שגויות ברצף מורידות אותה</li>
+                  <li>התרגול מסתיים לאחר 12 שאלות בדיוק</li>
                   <li>לכל שאלה יש מגבלת זמן של 1:30 דקות (ניתן לשנות או לבטל)</li>
+                  <li>שאלה שלא נענתה בזמן נחשבת כתשובה שגויה</li>
                 </ul>
               </div>
 
@@ -167,11 +177,11 @@ const PracticePage: React.FC<PracticePageProps> = ({
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-2xl font-bold text-secondary-800">
-                שאלה {currentQuestionNumber}
+                שאלה {currentQuestionNumber} מתוך 12
               </h1>
               <p className="text-secondary-600">
                 רמת קושי: {currentSession?.currentDifficulty} | 
-                שאלות בתרגול: {totalQuestionsInSession}
+                שאלות שהושלמו: {totalQuestionsInSession}
               </p>
             </div>
             

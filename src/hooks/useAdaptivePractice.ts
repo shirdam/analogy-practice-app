@@ -33,30 +33,21 @@ export const useAdaptivePractice = ({
   }, [onSessionComplete]);
 
   const shouldEndSession = useCallback((session: PracticeSession): boolean => {
-    // End session based on difficulty progression:
-    // - If reached difficulty 6 and answered 3+ questions at that level
-    // - If completed 15+ questions total
-    // - If spent more than 20 minutes (1200 seconds)
-    
-    const timeSpent = (Date.now() - session.startTime) / 1000;
-    const questionsAtMaxDifficulty = session.questions.filter(q => q.difficulty === 6).length;
-    
-    return (
-      session.sessionLength >= 15 ||
-      timeSpent >= 1200 ||
-      (session.currentDifficulty === 6 && questionsAtMaxDifficulty >= 3)
-    );
+    // End session after exactly 12 questions
+    return session.sessionLength >= 12;
   }, []);
 
   const adjustDifficulty = useCallback((session: PracticeSession) => {
-    const recentQuestions = session.questions.slice(-3); // Last 3 questions
-    const correctCount = recentQuestions.filter(q => q.isCorrect).length;
+    // Count correct and wrong answers in the last 2 questions
+    const lastTwoQuestions = session.questions.slice(-2);
+    const correctCount = lastTwoQuestions.filter(q => q.isCorrect).length;
+    const wrongCount = lastTwoQuestions.filter(q => !q.isCorrect).length;
     
     if (correctCount >= 2 && session.currentDifficulty < 6) {
-      // Increase difficulty if 2+ correct out of 3
+      // Increase difficulty if 2+ correct in last 2 questions
       setCurrentSession(prev => prev ? { ...prev, currentDifficulty: prev.currentDifficulty + 1 } : null);
-    } else if (correctCount <= 1 && session.currentDifficulty > 1) {
-      // Decrease difficulty if 1 or fewer correct out of 3
+    } else if (wrongCount >= 2 && session.currentDifficulty > 1) {
+      // Decrease difficulty if 2+ wrong in last 2 questions
       setCurrentSession(prev => prev ? { ...prev, currentDifficulty: prev.currentDifficulty - 1 } : null);
     }
   }, []);
@@ -128,10 +119,14 @@ export const useAdaptivePractice = ({
       id: sessionId,
       startTime: Date.now(),
       questions: [],
-      currentDifficulty: 1, // Start with difficulty 1
+      currentDifficulty: 3, // Start with difficulty 3-4 (randomly choose 3 or 4)
       sessionLength: 0,
       completed: false
     };
+    
+    // Randomly choose between difficulty 3 or 4
+    const startingDifficulty = Math.random() < 0.5 ? 3 : 4;
+    newSession.currentDifficulty = startingDifficulty;
     
     setCurrentSession(newSession);
     setCurrentQuestionIndex(0);
@@ -140,15 +135,16 @@ export const useAdaptivePractice = ({
     loadNextQuestion(newSession, 0);
   }, [loadNextQuestion]);
 
-  const submitAnswer = useCallback(() => {
-    if (!currentQuestion || !selectedAnswer || !currentSession) return;
+  const submitAnswer = useCallback((isTimeout: boolean = false) => {
+    if (!currentQuestion || !currentSession) return;
 
     const timeSpent = Math.floor((Date.now() - questionStartTime) / 1000);
-    const isCorrect = selectedAnswer === currentQuestion.correct_answer;
+    // If timeout, treat as wrong answer; otherwise check if selected answer is correct
+    const isCorrect = isTimeout ? false : (selectedAnswer === currentQuestion.correct_answer);
 
     const response: QuestionResponse = {
       questionId: currentQuestion.item_id,
-      selectedAnswer,
+      selectedAnswer: selectedAnswer || 1, // Default to option 1 if timeout
       isCorrect,
       timeSpent,
       difficulty: currentQuestion.difficulty,
@@ -163,8 +159,8 @@ export const useAdaptivePractice = ({
 
     setCurrentSession(updatedSession);
 
-    // Check if we should adjust difficulty (batched approach - every 3 questions)
-    if (updatedSession.questions.length % 3 === 0) {
+    // Check if we should adjust difficulty (every 2 questions)
+    if (updatedSession.questions.length >= 2 && updatedSession.questions.length % 2 === 0) {
       adjustDifficulty(updatedSession);
     }
 
@@ -177,6 +173,11 @@ export const useAdaptivePractice = ({
       setCurrentQuestionIndex(prev => prev + 1);
     }
   }, [currentQuestion, selectedAnswer, currentSession, questionStartTime, currentQuestionIndex, adjustDifficulty, shouldEndSession, endSession, loadNextQuestion]);
+
+  const handleTimeout = useCallback(() => {
+    // Submit answer as wrong when time runs out
+    submitAnswer(true);
+  }, [submitAnswer]);
 
   const endCurrentSession = useCallback(() => {
     if (currentSession) {
@@ -191,6 +192,7 @@ export const useAdaptivePractice = ({
     selectedAnswer,
     setSelectedAnswer,
     submitAnswer,
+    handleTimeout,
     startNewSession,
     endCurrentSession,
     isSessionActive: currentSession !== null,

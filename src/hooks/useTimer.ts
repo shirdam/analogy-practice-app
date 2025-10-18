@@ -59,6 +59,11 @@ export const useTimer = ({
     setIsPaused(false);
   };
 
+  const restart = () => {
+    setTimeLeft(initialTime);
+    setIsPaused(false);
+  };
+
   const addTime = (seconds: number) => {
     setTimeLeft(prev => Math.max(0, prev + seconds));
   };
@@ -76,6 +81,7 @@ export const useTimer = ({
     pause,
     resume,
     reset,
+    restart,
     addTime,
     formattedTime: formatTime(timeLeft),
     isTimeUp: timeLeft === 0
