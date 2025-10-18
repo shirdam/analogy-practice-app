@@ -26,7 +26,7 @@ app.post('/api/chat', async (req, res) => {
         'Authorization': `Bearer ${process.env.REACT_APP_OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         messages,
         max_tokens: 1000,
         temperature: 0.7,
