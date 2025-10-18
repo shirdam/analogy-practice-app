@@ -16,7 +16,7 @@ const PracticePage: React.FC<PracticePageProps> = ({
 }) => {
   const navigate = useNavigate();
   const [showInstructions, setShowInstructions] = useState(true);
-  const [timeLimit, setTimeLimit] = useState(90); // 1:30 minutes
+  const [timeLimit] = useState(90); // 1:30 minutes
   const [timerEnabled, setTimerEnabled] = useState(true);
   const [isTutorOpen, setIsTutorOpen] = useState(false);
 
@@ -44,21 +44,15 @@ const PracticePage: React.FC<PracticePageProps> = ({
     initialTime: timeLimit,
     onTimeUp: () => {
       if (isSessionActive && currentQuestion) {
-        // Handle timeout - submit as wrong answer
+        // Auto-submit when time is up
         handleTimeout();
       }
     },
     isActive: isSessionActive && timerEnabled,
     onPause: () => console.log('Timer paused'),
-    onResume: () => console.log('Timer resumed')
+    onResume: () => console.log('Timer resumed'),
+    restartKey: currentQuestion?.item_id // Restart timer when question changes
   });
-
-  // Restart timer when a new question loads
-  useEffect(() => {
-    if (currentQuestion && isSessionActive && timerEnabled) {
-      timer.restart();
-    }
-  }, [currentQuestion, isSessionActive, timerEnabled, timer]);
 
   const handleStartPractice = () => {
     setShowInstructions(false);
@@ -91,7 +85,7 @@ const PracticePage: React.FC<PracticePageProps> = ({
 
   if (showInstructions) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-100 flex items-center justify-center p-4" dir="rtl" style={{ direction: 'rtl' }}>
         <div className="max-w-4xl w-full">
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <div className="text-center mb-8">
@@ -117,8 +111,7 @@ const PracticePage: React.FC<PracticePageProps> = ({
                 </h2>
                 <ul className="space-y-2 list-disc list-inside">
                   <li>המערכת מתחילה ברמת קושי 3-4 ומתאימה את עצמה בהתאם לביצועים שלכם</li>
-                  <li>כל 2 שאלות המערכת מעריכה את הביצועים ומתאימה את רמת הקושי</li>
-                  <li>2 תשובות נכונות ברצף מעלות את רמת הקושי, 2 תשובות שגויות ברצף מורידות אותה</li>
+                  <li>תשובה נכונה מעלה את רמת הקושי, תשובה שגויה מורידה אותה</li>
                   <li>התרגול מסתיים לאחר 12 שאלות בדיוק</li>
                   <li>לכל שאלה יש מגבלת זמן של 1:30 דקות (ניתן לשנות או לבטל)</li>
                   <li>שאלה שלא נענתה בזמן נחשבת כתשובה שגויה</li>
@@ -170,7 +163,7 @@ const PracticePage: React.FC<PracticePageProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-100 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-100 p-4" dir="rtl" style={{ direction: 'rtl' }}>
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
@@ -180,8 +173,9 @@ const PracticePage: React.FC<PracticePageProps> = ({
                 שאלה {currentQuestionNumber} מתוך 12
               </h1>
               <p className="text-secondary-600">
-                רמת קושי: {currentSession?.currentDifficulty} | 
-                שאלות שהושלמו: {totalQuestionsInSession}
+                תרגול ברמת קושי: {currentSession?.currentDifficulty} | 
+                שאלות שהושלמו: {totalQuestionsInSession} | 
+                קושי שאלה נוכחית: {currentQuestion?.difficulty}
               </p>
             </div>
             
@@ -212,7 +206,7 @@ const PracticePage: React.FC<PracticePageProps> = ({
             <h2 className="text-3xl font-bold text-secondary-800 mb-4">
               אנלוגיה
             </h2>
-            <div className="text-2xl text-primary-600 font-semibold">
+            <div className="text-2xl text-primary-600 font-semibold" dir="rtl" style={{ direction: 'rtl', textAlign: 'center' }}>
               {currentQuestion.original_pair[0]} : {currentQuestion.original_pair[1]}
             </div>
           </div>
@@ -232,10 +226,12 @@ const PracticePage: React.FC<PracticePageProps> = ({
                     ? 'border-primary-500 bg-primary-50 text-primary-800'
                     : 'border-secondary-200 hover:border-primary-300 hover:bg-primary-25'
                 }`}
+                dir="rtl"
+                style={{ direction: 'rtl', textAlign: 'right' }}
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between" style={{ direction: 'rtl' }}>
                   <span className="text-lg font-semibold">{key}.</span>
-                  <span className="text-xl">{option[0]} : {option[1]}</span>
+                  <span className="text-xl" style={{ direction: 'rtl', textAlign: 'right' }}>{option[0]} : {option[1]}</span>
                 </div>
               </button>
             ))}

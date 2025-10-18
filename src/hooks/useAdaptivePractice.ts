@@ -37,17 +37,13 @@ export const useAdaptivePractice = ({
     return session.sessionLength >= 12;
   }, []);
 
-  const adjustDifficulty = useCallback((session: PracticeSession) => {
-    // Count correct and wrong answers in the last 2 questions
-    const lastTwoQuestions = session.questions.slice(-2);
-    const correctCount = lastTwoQuestions.filter(q => q.isCorrect).length;
-    const wrongCount = lastTwoQuestions.filter(q => !q.isCorrect).length;
-    
-    if (correctCount >= 2 && session.currentDifficulty < 6) {
-      // Increase difficulty if 2+ correct in last 2 questions
+  const adjustDifficulty = useCallback((session: PracticeSession, lastAnswer: QuestionResponse) => {
+    // Adjust difficulty based on the last answer only
+    if (lastAnswer.isCorrect && session.currentDifficulty < 6) {
+      // Increase difficulty if correct
       setCurrentSession(prev => prev ? { ...prev, currentDifficulty: prev.currentDifficulty + 1 } : null);
-    } else if (wrongCount >= 2 && session.currentDifficulty > 1) {
-      // Decrease difficulty if 2+ wrong in last 2 questions
+    } else if (!lastAnswer.isCorrect && session.currentDifficulty > 1) {
+      // Decrease difficulty if wrong
       setCurrentSession(prev => prev ? { ...prev, currentDifficulty: prev.currentDifficulty - 1 } : null);
     }
   }, []);
@@ -159,10 +155,8 @@ export const useAdaptivePractice = ({
 
     setCurrentSession(updatedSession);
 
-    // Check if we should adjust difficulty (every 2 questions)
-    if (updatedSession.questions.length >= 2 && updatedSession.questions.length % 2 === 0) {
-      adjustDifficulty(updatedSession);
-    }
+    // Adjust difficulty after each answer
+    adjustDifficulty(updatedSession, response);
 
     // Check if session should end (based on difficulty progression)
     if (shouldEndSession(updatedSession)) {

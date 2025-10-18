@@ -6,6 +6,7 @@ interface UseTimerProps {
   isActive: boolean;
   onPause?: () => void;
   onResume?: () => void;
+  restartKey?: string | number; // Key to force restart when changed
 }
 
 export const useTimer = ({ 
@@ -13,7 +14,8 @@ export const useTimer = ({
   onTimeUp, 
   isActive, 
   onPause, 
-  onResume 
+  onResume,
+  restartKey
 }: UseTimerProps) => {
   const [timeLeft, setTimeLeft] = useState(initialTime);
   const [isPaused, setIsPaused] = useState(false);
@@ -40,9 +42,18 @@ export const useTimer = ({
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
   }, [isActive, isPaused, timeLeft, onTimeUp]);
+
+  // Force restart when initialTime or restartKey changes
+  useEffect(() => {
+    if (isActive) {
+      setTimeLeft(initialTime);
+      setIsPaused(false);
+    }
+  }, [initialTime, isActive, restartKey]);
 
   const pause = () => {
     setIsPaused(true);
@@ -60,6 +71,12 @@ export const useTimer = ({
   };
 
   const restart = () => {
+    // Clear any existing interval first
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    // Reset time and pause state
     setTimeLeft(initialTime);
     setIsPaused(false);
   };
